@@ -18,8 +18,8 @@ contract MissionTracker {
             the reviewer's identity externally.
         _checkpoint: the index of the checkpoint in the game's `allCheckpoints` entry.
      */
-    function registerCheckpointComplete(uint256 _reviewer, uint256 _checkpoint) public returns (bool success) {
-        completedCheckpoints[_reviewer][msg.sender][_checkpoint] = true;
+    function setCheckpointComplete(uint256 _reviewer, address _game, uint256 _checkpoint) public returns (bool success) {
+        completedCheckpoints[_reviewer][_game][_checkpoint] = true;
         return true;
     }
 
