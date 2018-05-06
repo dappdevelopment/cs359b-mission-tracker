@@ -1,0 +1,27 @@
+<html>
+  <head>
+      <title>Mission Tracker</title>
+      <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+      <script src="https://dapps.stanford.edu/web3/web3-1.0.0-beta.34.min.js"></script>
+      <script src="js/app.js"></script>
+      <link rel="stylesheet" type="text/css" href="css/app.css">
+   </head>
+   <body>
+       <div class="container">
+           <h1>Mission Tracker</h1>
+           <h2 id="display"></h2>
+           <img id="loader" src="https://loading.io/spinners/pacman/lg.eat-bean-pie-loading-gif.gif">
+           <label for="checkpoint" class="col-lg-2 control-label">Checkpoint Name/Id</label>
+           <input id="checkpoint" type="text">
+           <button id="add-checkpoint">Add checkpoint</button>
+           <label for="game" class="col-lg-2 control-label">Game Address</label>
+           <input id="game" type="text">
+           <button id="view-game-checkpoints">View game checkpoints</button>
+           <label for="reviewer" class="col-lg-2 control-label">Reviewer ID</label>
+           <input id="reviewer" type="text">
+           <button id="view-progress">View progress</button>
+           <button id="do-checkpoint">Complete checkpoint</button>
+       </div>
+   </body>
+</html>

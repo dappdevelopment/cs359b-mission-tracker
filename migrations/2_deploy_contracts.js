@@ -1,4 +1,4 @@
-var Mission = artifacts.require("./MissionTracker.sol");
+var Mission = artifacts.require("MissionTracker");
 
 module.exports = function(deployer) {
 	deployer.deploy(Mission);
