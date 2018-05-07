@@ -17,8 +17,11 @@ contract MissionTracker {
         _reviewer: the ID of the reviewer who completed the checkpoint. The ID should be mapped to
             the reviewer's identity externally.
         _checkpoint: the index of the checkpoint in the game's `allCheckpoints` entry.
+     
+     Returns:
+        (bool) whether the operation was successfully performed.
      */
-    function registerCheckpointComplete(uint256 _reviewer, uint256 _checkpoint) public returns (bool success) {
+    function setCheckpointComplete(uint256 _reviewer, uint256 _checkpoint) public returns (bool success) {
         completedCheckpoints[_reviewer][msg.sender][_checkpoint] = true;
         return true;
     }
@@ -30,6 +33,9 @@ contract MissionTracker {
         _reviewer: the ID of the reviewer whose completion status is to be checked.
         _game: the address of the game's wallet.
         _checkpoint: the index of the checkpoint in the game's `allCheckpoints` entry.
+     
+     Returns:
+        (bool) whether the reviewer has completed the particular checkpoint.
      */
     function getCheckpointComplete(uint256 _reviewer, address _game, uint256 _checkpoint) view public returns (bool complete) {
         return completedCheckpoints[_reviewer][_game][_checkpoint];
@@ -44,9 +50,41 @@ contract MissionTracker {
 
     Args:
         _checkpointName: the string name given to the checkpoint by the game creator.
+     
+     Returns:
+        (bool) whether the transaction was successful.
      */
-    function addGameCheckpoint(string _checkpointName) public returns (uint256 checkpointId) {
+    function addGameCheckpoint(string _checkpointName) public returns (bool success) {
         allCheckpoints[msg.sender].push(_checkpointName);
-        return allCheckpoints[msg.sender].length;
+        return true;
+    }
+
+    /**
+    Returns the string names of a checkpoint with given numerical ID.
+
+    Args:
+        _game: the address of the game's wallet.
+        _checkpoint: the numerical ID of the checkpoint.
+
+    Returns:
+        (string) the strings name of the game checkpoint.
+     */
+    function getGameCheckpointName(address _game, uint256 _checkpoint) view public returns (string name) {
+        return allCheckpoints[_game][_checkpoint];
+    }
+
+    /**
+     Returns the number of checkpoints in a particular game.
+
+     This should primarily be used to iterate over the checkpoints of a game to acquire their names and completion status.
+     
+    Args:
+        _game: the address of the game's wallet.
+    
+    Returns:
+        (uint256) the number of checkpoints in the game.
+     */
+    function getGameCheckpointCount(address _game) view public returns (uint256 checkpointCount) {
+        return allCheckpoints[_game].length;
     }
 }
