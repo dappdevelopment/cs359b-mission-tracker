@@ -33,8 +33,8 @@ class ProgressViewer extends Component {
         this.state = {
             displayProgress: null,
         };
-        this.reviewerFieldText = null;
-        this.gameFieldText = null;
+        this.reviewerFieldText = props.reviewerId;
+        this.gameFieldText = props.gameAddress;
     }
 
     getProgress() {
@@ -49,7 +49,7 @@ class ProgressViewer extends Component {
     }
 
     render() {
-        let {classes} = this.props;
+        let {classes, reviewerId, gameAddress} = this.props;
         let {displayProgress} = this.state;
 
         let progressList = null;
@@ -78,10 +78,10 @@ class ProgressViewer extends Component {
                     Mission Tracker
                 </Typography>
                 <div>
-                    <TextField label="Reviewer ID" className={classes.textField} onChange={(e) => this.reviewerFieldText = e.target.value}/>
+                    <TextField label="Player ID" defaultValue={reviewerId} className={classes.textField} onChange={(e) => this.reviewerFieldText = e.target.value}/>
                 </div>
                 <div>
-                    <TextField label="Game ID" className={classes.textField} onChange={(e) => this.gameFieldText = e.target.value}/>
+                    <TextField label="Game ID" defaultValue={gameAddress} className={classes.textField} onChange={(e) => this.gameFieldText = e.target.value}/>
                 </div>
                 <div>
                     <Button variant="raised" className={classes.button} onClick={() => this.getProgress()}>
