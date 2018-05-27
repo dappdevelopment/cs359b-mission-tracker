@@ -1,10 +1,17 @@
 pragma solidity ^0.4.21;
 
+import "../node_modules/openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
+
 contract MissionTracker {
     // Maps reviewer ID -> game address -> checkpoint ID -> complete
-    mapping (uint256 => mapping (address => mapping (uint256 => bool))) completedCheckpoints;
+    mapping (address => mapping (address => mapping (uint256 => bool))) completedCheckpoints;
     // Maps game address -> checkpoint names (aligned with checkpoint IDs)
-    mapping (address => string[]) allCheckpoints;
+    mapping (address => string[]) allCheckpoints; 
+	// ERC721Token templates for achievement-based tokens (checkpoints, etc.) and item-based tokens (future implementation)
+	ERC721Token achievementToken = new ERC721Token("achievement", "achievement");
+	ERC721Token itemToken = new ERC721Token("item", "item");
+	// Unique ID representation of next token
+	uint256 _tokenID = 0;
 
     /**
     Records on the blockchain that a reviewer has completed a game's checkpoint.
@@ -14,14 +21,16 @@ contract MissionTracker {
     itself can record checkpoints.
 
     Args:
-        _reviewer: the ID of the reviewer who completed the checkpoint. The ID should be mapped to
-            the reviewer's identity externally.
+        _reviewer: the address of the reviewer
         _checkpoint: the index of the checkpoint in the game's `allCheckpoints` entry.
+		_URI: the user passed-in value for the token data. Suggested format is "[reviewer address] [checkpoint name]"
      
      Returns:
         (bool) whether the operation was successfully performed.
      */
-    function setCheckpointComplete(uint256 _reviewer, uint256 _checkpoint) public returns (bool success) {
+    function setCheckpointComplete(address _reviewer, uint256 _checkpoint, string _URI) public returns (bool success) {
+		_tokenID += 1;
+		achievementToken.create_token(_reviewer, _tokenID, _URI);
         completedCheckpoints[_reviewer][msg.sender][_checkpoint] = true;
         return true;
     }
@@ -30,14 +39,14 @@ contract MissionTracker {
     Returns whether a given reviewer has a achieved a certain checkpoint in a given game.
 
     Args:
-        _reviewer: the ID of the reviewer whose completion status is to be checked.
+        _reviewer: the address of the reviewer
         _game: the address of the game's wallet.
         _checkpoint: the index of the checkpoint in the game's `allCheckpoints` entry.
      
      Returns:
         (bool) whether the reviewer has completed the particular checkpoint.
      */
-    function getCheckpointComplete(uint256 _reviewer, address _game, uint256 _checkpoint) view public returns (bool complete) {
+    function getCheckpointComplete(address _reviewer, address _game, uint256 _checkpoint) view public returns (bool complete) {
         return completedCheckpoints[_reviewer][_game][_checkpoint];
     }
 
@@ -86,5 +95,40 @@ contract MissionTracker {
      */
     function getGameCheckpointCount(address _game) view public returns (uint256 checkpointCount) {
         return allCheckpoints[_game].length;
+    }
+	
+    /**
+     Transfers token from one user to the next
+
+     
+    Args:
+		_send: the address of the sender
+		_receive: the address of the recipient
+		_ID: the token ID
+    
+    Returns:
+		(bool) success
+     */
+    function transferToken(address _send, address _receive, uint256 _ID) public returns (bool success) {
+		require(!achievementToken.exists(_ID));
+		achievementToken.safeTransferFrom(_send, _receive, _ID);
+		return true;
+    }
+
+    /**
+    Creates an item as a token and assigns ownership to a certain user
+
+     
+    Args:
+        _reviewer: the address of the reviewer
+		_URI: the user passed-in value for the token data. Suggested format is "[reviewer address] [item type] [stats] ..."
+     
+     Returns:
+        (bool) whether the operation was successfully performed.
+     */
+	function itemAsToken(address _reviewer, string _URI) public returns (bool success) {
+		_tokenID += 1;
+		itemToken.create_token(_reviewer, _tokenID, _URI);
+        return true;
     }
 }

@@ -43,6 +43,10 @@ if (production) {
     app.use('/', express.static(`${__dirname}/client/build`));
 }
 
+app.get('/', (req, res) => {
+	console.log("started");
+});
+
 app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
     let reviewerId = req.params.reviewer;
     let checkpointId = req.params.checkpoint;
