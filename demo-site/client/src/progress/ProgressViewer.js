@@ -38,7 +38,7 @@ class ProgressViewer extends Component {
     }
 
     getProgress() {
-        fetch(`/api/get_progress/${this.gameFieldText}/${this.reviewerFieldText}`)
+        fetch(`/missiontracker/api/get_progress/${this.gameFieldText}/${this.reviewerFieldText}`)
         .then(response => response.json())
         .then(progress => {
             console.log(progress);

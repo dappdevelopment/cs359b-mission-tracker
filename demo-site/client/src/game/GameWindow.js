@@ -11,6 +11,8 @@ import NotInterestedIcon from '@material-ui/icons/NotInterested';
 
 import GamePlayer from './GamePlayer';
 
+const DEFAULT_SERVER_URL = 'https://35.231.137.35';
+
 const styles = (theme) => ({
     root: {
         backgroundColor: theme.palette.common.white,
@@ -35,6 +37,7 @@ class GameWindow extends Component {
         this.state = {
             messageText: 'Use the arrow keys to move',
         };
+        this.gameServerUrl = DEFAULT_SERVER_URL;
     }
 
     registerGameComplete() {
@@ -42,8 +45,11 @@ class GameWindow extends Component {
             this.setState({
                 messageText: 'Registering checkpoint with blockchain...',
             })
-            fetch(`/api/complete_checkpoint/${this.props.reviewerId}/0`)
-            .then(response => response.json())
+            fetch(`${this.gameServerUrl}/missiontracker/api/complete_checkpoint/${this.props.reviewerId}/0`, {mode: 'no-cors'})
+            .then(response => {
+                console.log(response);
+                response.json()
+            })
             .then(receipt => {
                 console.log(receipt);
                 this.setState({
@@ -54,7 +60,7 @@ class GameWindow extends Component {
     }
 
     addCheckpointToGame() {
-        fetch(`/api/add_checkpoint/${encodeURIComponent('Game complete!')}`)
+        fetch(`${this.gameServerUrl}/missiontracker/api/add_checkpoint/${encodeURIComponent('Game complete!')}`)
     }
 
     render() {
@@ -75,6 +81,9 @@ class GameWindow extends Component {
                 <Typography>
                     {messageText}
                 </Typography>
+                <div>
+                    <TextField label="Game Server URL" defaultValue={DEFAULT_SERVER_URL} className={classes.textField} onChange={(e) => this.gameServerUrl = e.target.value}/>
+                </div>
             </div>
         );
     }

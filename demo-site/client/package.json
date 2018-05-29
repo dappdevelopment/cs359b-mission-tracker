@@ -1,6 +1,7 @@
 {
   "name": "demo-site-client",
   "version": "0.1.0",
+  "homepage": "/missiontracker/",
   "private": true,
   "proxy": "http://localhost:5000",
   "dependencies": {

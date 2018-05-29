@@ -11,7 +11,6 @@ const gamePrivateKey = process.env.private;
 
 const temp_public = '0x1CE1fa37c955F8f48cf5Cff659eb0885874BBa7b';
 const temp_private = new Buffer('568eb8f8bae05aa41fc9f23eb43daf1043d3b0a0a6994c581be26e521c00c277', 'hex');
-const production = true;
 
 let contractAddress = null;
 let contract = null;
@@ -38,14 +37,6 @@ Promise.all([contractDataPromise, networkIdPromise])
     app.listen(port, () => console.log(`Site server on port ${port}`));
 })
 .catch(console.error);
-
-if (production) {
-    app.use('/', express.static(`${__dirname}/client/build`));
-}
-
-app.get('/', (req, res) => {
-	console.log("started");
-});
 
 app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
     let reviewerId = req.params.reviewer;

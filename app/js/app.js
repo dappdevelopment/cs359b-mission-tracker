@@ -41,14 +41,10 @@ function app() {
 
         $("#loader").show();
 
-        contract.methods.addGameCheckpoint(checkpointName).send({from: userAccount})
+        contract.methods.createAndAllowReward(checkpointName).send({from: userAccount})
             .then((receipt) => {
-                contract.methods.getGameCheckpointCount(userAccount).call().then(
-                    (count) => {
-                        console.log('added');
-                        $("#loader").hide();
-                    }
-                )
+                console.log(receipt);
+                $("#loader").hide();
             });
     }
 
@@ -57,26 +53,36 @@ function app() {
 
         $("#loader").show();
 
-        contract.methods.getGameCheckpointCount(gameAddress).call().then(
-            (count) => {
-                let funcs = [];
-                let checkpointNames = [];
-                for (let i = 0; i < count; i++) {
-                    funcs.push(() => {
-                        return contract.methods.getGameCheckpointName(gameAddress, i).call()
-                        .then((name) => checkpointNames.push(name));
-                    });
-                }
-                funcs.reduce((prev, curr) => {
-                    return prev.then(curr);
-                }, Promise.resolve()).then(
-                    () => {
-                        console.log(checkpointNames);
-                        $("#loader").hide();
-                    }
-                )
+        contract.methods.viewAllowedRewards(gameAddress).call().then(
+            (rewardIds) => {
+                rewardIds.forEach(rewardId => {
+                    contract.methods.getRewardName(rewardId).call().then(
+                        console.log
+                    )
+                });
+                $("#loader").hide();
             }
-        )
+        );
+        // contract.methods.getGameCheckpointCount(gameAddress).call().then(
+        //     (count) => {
+        //         let funcs = [];
+        //         let checkpointNames = [];
+        //         for (let i = 0; i < count; i++) {
+        //             funcs.push(() => {
+        //                 return contract.methods.getGameCheckpointName(gameAddress, i).call()
+        //                 .then((name) => checkpointNames.push(name));
+        //             });
+        //         }
+        //         funcs.reduce((prev, curr) => {
+        //             return prev.then(curr);
+        //         }, Promise.resolve()).then(
+        //             () => {
+        //                 console.log(checkpointNames);
+        //                 $("#loader").hide();
+        //             }
+        //         )
+        //     }
+        // )
     }
 
     function viewProgress(gameAddress, reviewerId) {
@@ -84,30 +90,48 @@ function app() {
 
         $("#loader").show();
 
-        contract.methods.getGameCheckpointCount(gameAddress).call().then(
-            (count) => {
-                let funcs = [];
-                let checkpointNames = [];
-                let checkpointComplete = [];
-                for (let i = 0; i < count; i++) {
-                    funcs.push(() => {
-                        return contract.methods.getGameCheckpointName(gameAddress, i).call()
-                        .then((name) => checkpointNames.push(name))
-                        .then(() => contract.methods.getCheckpointComplete(reviewerId, gameAddress, i).call()
-                        .then((complete) => checkpointComplete.push(complete)));
-                    })
+        contract.methods.balanceOf(reviewerId).call().then(balance => {
+                for (let i = 0; i < balance; i++) {
+                    contract.methods.tokenOfOwnerByIndex(reviewerId, i).call().then(tokenId => {
+                            contract.methods.getTokenCreator(tokenId).call().then(creator => {
+                                if (creator === gameAddress) {
+                                    contract.methods.getTokenReward(tokenId).call().then(rewardId => {
+                                        contract.methods.getRewardName(rewardId).call().then(console.log);
+                                    })
+                                }
+                            })
+                        }
+                    )
                 }
-                funcs.reduce((prev, curr) => {
-                    return prev.then(curr);
-                }, Promise.resolve()).then(
-                    () => {
-                        console.log(checkpointNames);
-                        console.log(checkpointComplete);
-                        $("#loader").hide();
-                    }
-                )
             }
         )
+        // contract.methods.tokenOfOwnerByIndex(reviewerId, 0).call().then(
+        //     console.log
+        // );
+        // contract.methods.getGameCheckpointCount(gameAddress).call().then(
+        //     (count) => {
+        //         let funcs = [];
+        //         let checkpointNames = [];
+        //         let checkpointComplete = [];
+        //         for (let i = 0; i < count; i++) {
+        //             funcs.push(() => {
+        //                 return contract.methods.getGameCheckpointName(gameAddress, i).call()
+        //                 .then((name) => checkpointNames.push(name))
+        //                 .then(() => contract.methods.getCheckpointComplete(reviewerId, gameAddress, i).call()
+        //                 .then((complete) => checkpointComplete.push(complete)));
+        //             })
+        //         }
+        //         funcs.reduce((prev, curr) => {
+        //             return prev.then(curr);
+        //         }, Promise.resolve()).then(
+        //             () => {
+        //                 console.log(checkpointNames);
+        //                 console.log(checkpointComplete);
+        //                 $("#loader").hide();
+        //             }
+        //         )
+        //     }
+        // )
     }
 
     function completeCheckpoint(reviewerId, checkpointId) {
@@ -115,7 +139,7 @@ function app() {
 
         $("#loader").show();
 
-        contract.methods.setCheckpointComplete(reviewerId, checkpointId).send({from: userAccount}).then(() => {
+        contract.methods.giveReward(reviewerId, checkpointId).send({from: userAccount}).then(() => {
             $("#loader").hide();
             console.log('completed');
         });
