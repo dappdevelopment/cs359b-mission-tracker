@@ -58,3 +58,5 @@ typings/
 
 build/
 *.swp
+*.tar
+demo-site/node_modules/fsevents/lib/binding/Release/node-v64-darwin-x64/fse.node

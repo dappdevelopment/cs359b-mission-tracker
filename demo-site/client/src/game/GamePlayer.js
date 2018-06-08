@@ -1,10 +1,14 @@
 import React, { Component } from 'react';
 
-import {withStyles} from 'material-ui/styles';
-import Typography from 'material-ui/Typography';
-import TextField from 'material-ui/TextField';
-import Button from 'material-ui/Button';
-import List, {ListItem, ListItemText, ListItemIcon} from 'material-ui/List';
+import {withStyles} from '@material-ui/core/styles';
+import Typography from '@material-ui/core/Typography';
+import TextField from '@material-ui/core/TextField';
+import Button from '@material-ui/core/Button';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListSubheader from '@material-ui/core/ListSubheader';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
 
 import CheckIcon from '@material-ui/icons/Check';
 import NotInterestedIcon from '@material-ui/icons/NotInterested';
@@ -15,6 +19,9 @@ const styles = (theme) => ({
     },
     ball: {
         fill: 'blue',
+    },
+    hat: {
+        fill: 'red',
     }
 });
 
@@ -73,12 +80,17 @@ class GamePlayer extends Component {
     }
 
     render() {
-        let {classes} = this.props;
+        let {classes, isCompleted} = this.props;
         let {x, y} = this.state;
 
         return (
             <svg width={canvasWidth} height={canvasHeight} className={classes.game}>
                 <rect width="20" height="20" x={x} y={y} className={classes.ball} />
+                {isCompleted ?
+                    <rect width="10" height="10" x={x + 5} y={ y - 10} className={classes.hat} />
+                : 
+                    null
+                }
             </svg>
         );
     }

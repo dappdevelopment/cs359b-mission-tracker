@@ -7,8 +7,7 @@ const Path = require('path');
 const app = express();
 const port = 5000;
 const providerUrl = 'https://rinkeby.infura.io/N9Txfkh1TNZhoeKXV6Xm';
-const gamePublicKey = '0x1CE1fa37c955F8f48cf5Cff659eb0885874BBa7b';
-const gamePrivateKey = new Buffer('568eb8f8bae05aa41fc9f23eb43daf1043d3b0a0a6994c581be26e521c00c277', 'hex');
+// const providerUrl = 'http://127.0.0.1:7545';
 
 let contractAddress = null;
 let contract = null;
@@ -36,33 +35,107 @@ Promise.all([contractDataPromise, networkIdPromise])
 })
 .catch(console.error);
 
-app.get('/missiontracker/api/get_progress/:game/:reviewer', (req, res) => {
-    let gameAddress = req.params.game;
-    let reviewerId = req.params.reviewer;
-    contract.methods.getGameCheckpointCount(gameAddress).call().then(
-        (count) => {
-            let funcs = [];
-            let checkpointNames = [];
-            let checkpointComplete = [];
-            for (let i = 0; i < count; i++) {
-                funcs.push(() => {
-                    return contract.methods.getGameCheckpointName(gameAddress, i).call()
-                    .then((name) => checkpointNames.push(name))
-                    .then(() => contract.methods.getCheckpointComplete(reviewerId, gameAddress, i).call()
-                    .then((complete) => checkpointComplete.push(complete)));
-                })
-            }
-            funcs.reduce((prev, curr) => {
-                return prev.then(curr);
-            }, Promise.resolve()).then(
-                () => {
-                    res.send(checkpointNames.map((name, i) => ({
-                            name, 
-                            completed: checkpointComplete[i],
-                        })
-                    ));
-                }
-            )
+app.get('/missiontracker/api/register_game/:name', (req, res) => {
+    let name = req.params.name;
+
+    contract.methods.registerGame(decodeURIComponent(name)).send({from: userAccount})
+    .then((receipt) => {
+        res.send(receipt);
+    });
+});
+
+// TODO: currently will only detect rewards issues by the game, not by any other game
+app.get('/missiontracker/api/get_progress/:player', (req, res) => {
+    let playerId = req.params.player;
+
+    let ownedTokenIds = null;
+    let playedGameIds = null;
+    let playedGameAddresses = null;
+    const addressToName = {};
+    const allowedRewardNames = {};
+    const allowedRewardIds = {};
+
+    contract.methods.balanceOf(playerId).call()
+    .then((balance) => {
+        let funcs = [];
+        for (let i = 0; i < balance; i++) {
+            funcs.push(contract.methods.tokenOfOwnerByIndex(playerId, i).call());
         }
-    )
+        return Promise.all(funcs);
+    })
+    .then((tokenIds) => {
+        ownedTokenIds = tokenIds;
+        return Promise.all(tokenIds.map(tokenId => {
+            return contract.methods.getTokenCreator(tokenId).call();
+        }));
+    })
+    .then((tokenCreators) => {
+        playedGameAddresses = Array.from(new Set(tokenCreators));
+        return Promise.all(tokenCreators.map(tokenCreator => {
+            return contract.methods.getGameName(tokenCreator).call();
+        }))
+    })
+    .then((gameNames) => {
+        playedGameNames = gameNames;
+        return Promise.all(playedGameAddresses.map(gameAddress => {
+            return contract.methods.getAllowedRewards(gameAddress).call();
+        }));
+    })
+    .then((rewardIdArrays) => {
+        rewardIdArrays.forEach((rewardIds, i) => {
+            allowedRewardIds[playedGameAddresses[i]] = rewardIds;
+        });
+    })
+    .then(() => {
+        let funcs = [];
+        playedGameAddresses.forEach((gameAddress) => {
+            funcs.push(Promise.all(allowedRewardIds[gameAddress].map(rewardId => {
+                return contract.methods.getRewardName(rewardId).call();
+            })));
+        });
+        return Promise.all(funcs);
+    })
+    .then((rewardNameArrays) => {
+        rewardNameArrays.forEach((rewardNames, i) => {
+            allowedRewardNames[playedGameAddresses[i]] = rewardNames;
+        })
+    })
+    .then(() => {
+        return Promise.all(playedGameAddresses.map(address => {
+            return contract.methods.getGameName(address).call();
+        }));
+    })
+    .then((gameNames) => {
+        gameNames.map((name, i) => {
+            addressToName[playedGameAddresses[i]] = name;
+        });
+    })
+    .then(() => {
+        return Promise.all(ownedTokenIds.map(tokenId => {
+            return contract.methods.getTokenReward(tokenId).call();
+        }));
+    })
+    .then((rewardIds) => {
+        const rewardIdSet = new Set(rewardIds);
+        const progress = {};
+        Object.entries(allowedRewardIds).forEach(([gameAddress, rewardIds]) => {
+            let rewards = [];
+            for (let i = 0; i < rewardIds.length; i++) {
+                    if (rewardIdSet.has(rewardIds[i])) {
+                        rewards.push({
+                            name: allowedRewardNames[gameAddress][i],
+                            owned: true,
+                        })
+                    }
+            }
+            progress[gameAddress] = {
+                progress: rewards,
+                gameName: addressToName[gameAddress],
+            };
+        });
+        return progress;
+    })
+    .then((progress) => {
+        res.send(progress);
+    });
 });

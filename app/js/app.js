@@ -48,12 +48,24 @@ function app() {
             });
     }
 
+    function registerGame(gameName) {
+        if (!gameName) return console.log('Must specify a game name');
+
+        $("#loader").show();
+
+        contract.methods.registerGame(gameName).send({from: userAccount})
+            .then((receipt) => {
+                console.log(receipt);
+                $("#loader").hide();
+            });
+    }
+
     function viewGameCheckpoints(gameAddress) {
         if (!gameAddress) return console.log('Must specify a game');
 
         $("#loader").show();
 
-        contract.methods.viewAllowedRewards(gameAddress).call().then(
+        contract.methods.getAllowedRewards(gameAddress).call().then(
             (rewardIds) => {
                 rewardIds.forEach(rewardId => {
                     contract.methods.getRewardName(rewardId).call().then(
@@ -86,25 +98,143 @@ function app() {
     }
 
     function viewProgress(gameAddress, reviewerId) {
-        if (!gameAddress || !reviewerId) return console.log('Must specify a game and reviewer id');
+        // if (!gameAddress || !reviewerId) return console.log('Must specify a game and reviewer id');
 
         $("#loader").show();
 
-        contract.methods.balanceOf(reviewerId).call().then(balance => {
-                for (let i = 0; i < balance; i++) {
-                    contract.methods.tokenOfOwnerByIndex(reviewerId, i).call().then(tokenId => {
-                            contract.methods.getTokenCreator(tokenId).call().then(creator => {
-                                if (creator === gameAddress) {
-                                    contract.methods.getTokenReward(tokenId).call().then(rewardId => {
-                                        contract.methods.getRewardName(rewardId).call().then(console.log);
-                                    })
-                                }
-                            })
-                        }
-                    )
-                }
+        let playerId = reviewerId;
+        let ownedTokenIds = null;
+        let playedGameIds = null;
+        let playedGameAddresses = null;
+        const allowedRewardNames = {};
+        const allowedRewardIds = {};
+
+        contract.methods.balanceOf(playerId).call()
+        .then((balance) => {
+            let funcs = [];
+            for (let i = 0; i < balance; i++) {
+                funcs.push(contract.methods.tokenOfOwnerByIndex(playerId, i).call());
             }
-        )
+            return Promise.all(funcs);
+        })
+        .then((tokenIds) => {
+            ownedTokenIds = tokenIds;
+            return Promise.all(tokenIds.map(tokenId => {
+                return contract.methods.getTokenCreator(tokenId).call();
+            }));
+        })
+        .then((tokenCreators) => {
+            playedGameAddresses = Array.from(new Set(tokenCreators));
+            return Promise.all(tokenCreators.map(tokenCreator => {
+                return contract.methods.getGameName(tokenCreator).call();
+            }))
+        })
+        .then((gameNames) => {
+            playedGameNames = gameNames;
+            return Promise.all(playedGameAddresses.map(gameAddress => {
+                return contract.methods.getAllowedRewards(gameAddress).call();
+            }));
+        })
+        .then((rewardIdArrays) => {
+            rewardIdArrays.forEach((rewardIds, i) => {
+                allowedRewardIds[playedGameAddresses[i]] = rewardIds;
+            });
+        })
+        .then(() => {
+            let funcs = [];
+            playedGameAddresses.forEach((gameAddress) => {
+                funcs.push(Promise.all(allowedRewardIds[gameAddress].map(rewardId => {
+                    return contract.methods.getRewardName(rewardId).call();
+                })));
+            });
+            return Promise.all(funcs);
+        })
+        .then((rewardNameArrays) => {
+            rewardNameArrays.forEach((rewardNames, i) => {
+                allowedRewardNames[playedGameAddresses[i]] = rewardNames;
+            })
+        })
+        .then(() => {
+            return Promise.all(ownedTokenIds.map(tokenId => {
+                return contract.methods.getTokenReward(tokenId).call();
+            }));
+        })
+        .then((rewardIds) => {
+            let rewardIdSet = new Set(rewardIds);
+            Object.entries(allowedRewardIds).forEach(([gameAddress, rewardIds]) => {
+                console.log(rewardIds.map((rewardId, i) => ({
+                    name: allowedRewardNames[gameAddress][i], 
+                    owned: rewardIdSet.has(rewardId),
+                })));
+            });
+
+            $("#loader").hide();
+        });
+
+        // let allowedRewardIds = null;
+        // let allowedRewardNames = null;
+        // let ownedTokenIds = null;
+        // contract.methods.getAllowedRewards(gameAddress).call()
+        // .then((rewardIds) => {
+        //     allowedRewardIds = rewardIds;
+        //     return Promise.all(allowedRewardIds.map(rewardId => {
+        //         return contract.methods.getRewardName(rewardId).call();
+        //     }));
+        // })
+        // .then((rewardNames) => {
+        //     allowedRewardNames = rewardNames;
+        // })
+        // .then(() => {
+        //     return contract.methods.balanceOf(playerId).call();
+        // })
+        // .then((balance) => {
+        //     let funcs = [];
+        //     for (let i = 0; i < balance; i++) {
+        //         funcs.push(contract.methods.tokenOfOwnerByIndex(playerId, i).call());
+        //     }
+        //     return Promise.all(funcs);
+        // })
+        // .then((tokenIds) => {
+        //     ownedTokenIds = tokenIds;
+        //     return Promise.all(tokenIds.map(tokenId => {
+        //         return contract.methods.getTokenCreator(tokenId).call();
+        //     }));
+        // })
+        // .then((tokenCreators) => {
+        //     return ownedTokenIds.filter((tokenId, i) => tokenCreators[i] === gameAddress);
+        // })
+        // .then((tokenIds) => {
+        //     return Promise.all(tokenIds.map(tokenId => {
+        //         return contract.methods.getTokenReward(tokenId).call();
+        //     }));
+        // })
+        // .then((rewardIds) => {
+        //     console.log(rewardIds, allowedRewardIds);
+        //     let ownedRewards = new Set(rewardIds);
+        //     return allowedRewardIds.map(rewardId => ownedRewards.has(rewardId));
+        // })
+        // .then((rewardIsOwned) => {
+        //     console.log(allowedRewardNames.map((name, i) => ({
+        //         name, 
+        //         owned: rewardIsOwned[i],
+        //     })));
+        // });
+        // contract.methods.balanceOf(reviewerId).call().then(balance => {
+        //         for (let i = 0; i < balance; i++) {
+        //             contract.methods.tokenOfOwnerByIndex(reviewerId, i).call().then(tokenId => {
+        //                     contract.methods.getTokenCreator(tokenId).call().then(creator => {
+        //                         if (creator === gameAddress) {
+        //                             contract.methods.getTokenReward(tokenId).call().then(rewardId => {
+        //                                 contract.methods.getRewardName(rewardId).call().then(console.log);
+        //                             })
+        //                         }
+        //                     })
+        //                 }
+        //             )
+        //         }
+        //     }
+        // )
+
         // contract.methods.tokenOfOwnerByIndex(reviewerId, 0).call().then(
         //     console.log
         // );
@@ -159,6 +289,11 @@ function app() {
         var gameAddress = $("#game").val();
         var reviewerId = $("#reviewer").val();
         viewProgress(gameAddress, reviewerId);
+    });
+
+    $("#register-game").click(function() {
+        var gameName = $("#checkpoint").val();
+        registerGame(gameName);
     });
     
     $("#do-checkpoint").click(function() {

@@ -38,43 +38,14 @@ Promise.all([contractDataPromise, networkIdPromise])
 })
 .catch(console.error);
 
-app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
-    let reviewerId = req.params.reviewer;
-    let checkpointId = req.params.checkpoint;
-    let encodedABI = contract.methods.setCheckpointComplete(reviewerId, checkpointId).encodeABI();
+app.get('/api/give_reward/:player/:reward', (req, res) => {
+    let playerId = req.params.player;
+    let rewardId = req.params.reward;
+    let encodedABI = contract.methods.giveReward(playerId, rewardId).encodeABI();
 
 	console.log("reached here : ");
 	console.log( gamePublicKey);
 
-
-    //web3.eth.getTransactionCount(gamePublicKey, 'pending')
-    web3.eth.getTransactionCount(temp_public, 'pending')
-    .then(nonce => {
-        let rawTx = {
-            from: gamePublicKey,
-            to: contractAddress,
-            gas: 2000000,
-            data: encodedABI,
-            gasPrice: '100',
-            nonce,
-        };
-
-        let tx = new Tx(rawTx);
-        tx.sign(temp_private);
-        //tx.sign(gamePrivateKey);
-    
-        let serializedTx = tx.serialize();
-    
-        web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'))
-        .on('receipt', console.log)
-        .catch(console.error);
-    })
-});
-
-app.get('/api/add_checkpoint/:checkpoint_name', (req, res) => {
-	console.log("hello");
-    let checkpointName = decodeURIComponent(req.params.checkpoint_name);
-    let encodedABI = contract.methods.addGameCheckpoint(checkpointName).encodeABI();
 
     //web3.eth.getTransactionCount(gamePublicKey, 'pending')
     web3.eth.getTransactionCount(temp_public, 'pending')
