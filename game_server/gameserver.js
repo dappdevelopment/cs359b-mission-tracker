@@ -4,13 +4,15 @@ const Tx = require('ethereumjs-tx');
 const MissionTrackerJson = require('./contracts/MissionTracker.json');
 
 const app = express();
+//5001 is the port that the machine will use to communicate with the Docker server
 const port = process.env.PORT || 5001;
 const providerUrl = 'https://rinkeby.infura.io/N9Txfkh1TNZhoeKXV6Xm';
 const gamePublicKey = process.env.public;
 const gamePrivateKey = process.env.private;
 
-const temp_public = '0x1CE1fa37c955F8f48cf5Cff659eb0885874BBa7b';
-const temp_private = new Buffer('568eb8f8bae05aa41fc9f23eb43daf1043d3b0a0a6994c581be26e521c00c277', 'hex');
+//Testing 
+//const temp_public = '0x1CE1fa37c955F8f48cf5Cff659eb0885874BBa7b';
+//const temp_private = new Buffer('568eb8f8bae05aa41fc9f23eb43daf1043d3b0a0a6994c581be26e521c00c277', 'hex');
 const production = true;
 
 let contractAddress = null;
@@ -52,12 +54,9 @@ app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
     let checkpointId = req.params.checkpoint;
     let encodedABI = contract.methods.setCheckpointComplete(reviewerId, checkpointId).encodeABI();
 
-	console.log("reached here : ");
-	console.log( gamePublicKey);
 
-
-    //web3.eth.getTransactionCount(gamePublicKey, 'pending')
-    web3.eth.getTransactionCount(temp_public, 'pending')
+    web3.eth.getTransactionCount(gamePublicKey, 'pending')
+    //web3.eth.getTransactionCount(temp_public, 'pending')
     .then(nonce => {
         let rawTx = {
             from: gamePublicKey,
@@ -69,8 +68,8 @@ app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
         };
 
         let tx = new Tx(rawTx);
-        tx.sign(temp_private);
-        //tx.sign(gamePrivateKey);
+        //tx.sign(temp_private);
+        tx.sign(gamePrivateKey);
     
         let serializedTx = tx.serialize();
     
@@ -85,8 +84,8 @@ app.get('/api/add_checkpoint/:checkpoint_name', (req, res) => {
     let checkpointName = decodeURIComponent(req.params.checkpoint_name);
     let encodedABI = contract.methods.addGameCheckpoint(checkpointName).encodeABI();
 
-    //web3.eth.getTransactionCount(gamePublicKey, 'pending')
-    web3.eth.getTransactionCount(temp_public, 'pending')
+    web3.eth.getTransactionCount(gamePublicKey, 'pending')
+    //web3.eth.getTransactionCount(temp_public, 'pending')
     .then(nonce => {
         let rawTx = {
             from: gamePublicKey,
@@ -98,8 +97,8 @@ app.get('/api/add_checkpoint/:checkpoint_name', (req, res) => {
         };
 
         let tx = new Tx(rawTx);
-        tx.sign(temp_private);
-        //tx.sign(gamePrivateKey);
+        //tx.sign(temp_private);
+        tx.sign(gamePrivateKey);
     
         let serializedTx = tx.serialize();
     
