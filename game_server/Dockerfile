@@ -1,10 +1,10 @@
 #Use the official Node.js image with Node v7 as the template for this Docker image 
 FROM node:7
 
-#Set the working directory of the docker image 
+#Set the working directory of the docker image. We use this directory to store files and run npm
 WORKDIR /app
 
-#By coping package.json, we prevent the need to rebuild from scratch when changing some files
+#By coping package.json first, we prevent the need to reinstall dependencies when changing package.json
 COPY package.json /app
 
 #Install the necessary Node dependencies 

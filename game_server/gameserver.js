@@ -4,9 +4,12 @@ const Tx = require('ethereumjs-tx');
 const MissionTrackerJson = require('./contracts/MissionTracker.json');
 
 const app = express();
+
 //5001 is the port that the machine will use to communicate with the Docker server
 const port = process.env.PORT || 5001;
 const providerUrl = 'https://rinkeby.infura.io/N9Txfkh1TNZhoeKXV6Xm';
+
+//Game public and private keys
 const gamePublicKey = process.env.public;
 const gamePrivateKey = process.env.private;
 
@@ -56,7 +59,6 @@ app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
 
 
     web3.eth.getTransactionCount(gamePublicKey, 'pending')
-    //web3.eth.getTransactionCount(temp_public, 'pending')
     .then(nonce => {
         let rawTx = {
             from: gamePublicKey,
@@ -68,7 +70,6 @@ app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
         };
 
         let tx = new Tx(rawTx);
-        //tx.sign(temp_private);
         tx.sign(gamePrivateKey);
     
         let serializedTx = tx.serialize();
@@ -85,7 +86,6 @@ app.get('/api/add_checkpoint/:checkpoint_name', (req, res) => {
     let encodedABI = contract.methods.addGameCheckpoint(checkpointName).encodeABI();
 
     web3.eth.getTransactionCount(gamePublicKey, 'pending')
-    //web3.eth.getTransactionCount(temp_public, 'pending')
     .then(nonce => {
         let rawTx = {
             from: gamePublicKey,
@@ -97,7 +97,6 @@ app.get('/api/add_checkpoint/:checkpoint_name', (req, res) => {
         };
 
         let tx = new Tx(rawTx);
-        //tx.sign(temp_private);
         tx.sign(gamePrivateKey);
     
         let serializedTx = tx.serialize();
