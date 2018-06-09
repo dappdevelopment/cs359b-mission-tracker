@@ -58,7 +58,6 @@ const styles = (theme) => ({
 
 class GameManager extends Component {
     
-    var tokenID = null;
     constructor(props, context) {
         super(props);
         this.state = {
@@ -116,6 +115,7 @@ class GameManager extends Component {
     };
     
     var tokenEvent = this.contract.methods.Token();
+    var tokenID = null;
 
     tokenEvent.watch(function(error, result){
         if (!error)
