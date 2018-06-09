@@ -91,17 +91,6 @@ class GameManager extends Component {
             this.contract = new window.web3.eth.Contract(contractData.abi, contractAddress);
         })
         .catch(console.error);
-        
-        var tokenEvent = this.contract.methods.Token();
-
-        tokenEvent.watch(function(error, result){
-            if (!error)
-            {
-                tokenID = result;
-            } else {
-                console.log(error);
-            }
-        });
     }
 
     registerGame() {
@@ -126,7 +115,16 @@ class GameManager extends Component {
       this.setState({ showSnackbar: false });
     };
     
+    var tokenEvent = this.contract.methods.Token();
 
+    tokenEvent.watch(function(error, result){
+        if (!error)
+        {
+            tokenID = result;
+        } else {
+            console.log(error);
+        }
+    });
 
     render() {
         let {classes} = this.props;
