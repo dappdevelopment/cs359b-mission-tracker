@@ -12,6 +12,8 @@ contract MissionTracker is ERC721Token {
     uint256 internal _nextTokenId = 0;
     uint256 internal _nextRewardId = 0;
 
+    event Token(uint256 _id);
+
     constructor(string name_, string symbol_) ERC721Token(name_, symbol_) {}
 
     function getAllowedRewards(address _creator) public view returns (uint256[]) {
@@ -39,6 +41,7 @@ contract MissionTracker is ERC721Token {
         tokenToCreator[_nextTokenId] = msg.sender;
         tokenToRewardId[_nextTokenId] = _rewardId;
         super._mint(_recipient, _nextTokenId);
+        emit Token(_nextTokenId);
         return true;
     }
 
