@@ -57,6 +57,8 @@ const styles = (theme) => ({
 });
 
 class GameManager extends Component {
+    
+    var tokenID = null;
     constructor(props, context) {
         super(props);
         this.state = {
@@ -89,6 +91,17 @@ class GameManager extends Component {
             this.contract = new window.web3.eth.Contract(contractData.abi, contractAddress);
         })
         .catch(console.error);
+        
+        var tokenEvent = this.contract.methods.Token();
+
+        tokenEvent.watch(function(error, result){
+            if (!error)
+            {
+                tokenID = result;
+            } else {
+                console.log(error);
+            }
+        });
     }
 
     registerGame() {
@@ -112,6 +125,8 @@ class GameManager extends Component {
     handleClose = (event, reason) => {
       this.setState({ showSnackbar: false });
     };
+    
+
 
     render() {
         let {classes} = this.props;
@@ -127,7 +142,7 @@ class GameManager extends Component {
                 </div>
                 <div>
                     <TextField placeholder={'New Item Name'} className={classes.textField} onChange={(e) => this.setState({achievementFieldText: e.target.value})}/>
-                    <Button className={classes.button} onClick={() => {this.addAchievement(); this.setState({showSnackbar: true, snackbarText: 'New item (#5) forged!'});}}>CREATE</Button>
+                    <Button className={classes.button} onClick={() => {this.addAchievement(); var item_alert = 'New item (' + String(tokenID) + ') forged!'; this.setState({showSnackbar: true, snackbarText: item_alert});}}>CREATE</Button>
                 </div>
                 <Snackbar
                     anchorOrigin={{
