@@ -140,7 +140,7 @@ class GameManager extends Component {
                 </div>
                 <div>
                     <TextField placeholder={'New Item Name'} className={classes.textField} onChange={(e) => this.setState({achievementFieldText: e.target.value})}/>
-                    <Button className={classes.button} onClick={() => {this.addAchievement(); var item_alert = 'New item (' + String(tokenID) + ') forged!'; this.setState({showSnackbar: true, snackbarText: item_alert});}}>CREATE</Button>
+                    <Button className={classes.button} onClick={() => {this.addAchievement(); var item_id = 'New item (#' + String(item_id) + ') forged!'; this.setState({showSnackbar: true, snackbarText: item_alert});}}>CREATE</Button>
                 </div>
                 <Snackbar
                     anchorOrigin={{
