@@ -1,28 +1,16 @@
+/**
+ * Handles the registering of new games and the creation of new reward types.
+ */
+
 import React, { Component } from 'react';
 
 import MissionTrackerJSON from '../contracts/MissionTracker.json';
 
 import {withStyles} from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
-import Paper from '@material-ui/core/Paper';
-import Input from '@material-ui/core/Input';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import ListSubheader from '@material-ui/core/ListSubheader';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
-import Divider from '@material-ui/core/Divider';
-import SvgIcon from '@material-ui/core/SvgIcon';
-import ExpansionPanel from '@material-ui/core/ExpansionPanel';
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
-import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
 import Snackbar from '@material-ui/core/Snackbar';
 
 import CheckIcon from '@material-ui/icons/Check';
@@ -54,6 +42,11 @@ const styles = (theme) => ({
       fontSize: theme.typography.pxToRem(15),
       fontWeight: theme.typography.fontWeightRegular,
     },
+    spinner: {
+        padding: '100px',
+        width: '2em',
+        margin: 'auto',
+    }
 });
 
 class GameManager extends Component {
@@ -65,33 +58,54 @@ class GameManager extends Component {
             achievementFieldText: '',
             showSnackbar: false,
             snackbarText: '',
+            loading: false,
+            failed: false,
+            wrongNetwork: false,
         };
+        this.rewardId = null;
         this.contract = null;
         this.userAccount = null;
 
-        window.web3 = new window.Web3(window.web3.currentProvider); // MetaMask injected Ethereum provider
-
-        let networkIdPromise = window.web3.eth.net.getId(); // resolves on the current network id
-        let accountsPromise = window.web3.eth.getAccounts(); // resolves on an array of accounts
+        if (typeof web3 == 'undefined') {
+            this.state.failed = true;
+        }
+        else {
+            // Connect to Metamask and find the contract
+            window.web3 = new window.Web3(window.web3.currentProvider); // MetaMask injected Ethereum provider
     
-        Promise.all([MissionTrackerJSON, networkIdPromise, accountsPromise])
-        .then((results) => {
-            var contractData = results[0];
-            var networkId = results[1];
-            var accounts = results[2];
-            this.userAccount = accounts[0];
-    
-            // Make sure the contract is deployed on the connected network
-            if (!(networkId in contractData.networks)) {
-                throw new Error("Contract not found in selected Ethereum network on MetaMask.");
-            }
-    
-            var contractAddress = contractData.networks[networkId].address;
-            this.contract = new window.web3.eth.Contract(contractData.abi, contractAddress);
-        })
-        .catch(console.error);
+            let networkIdPromise = window.web3.eth.net.getId(); // resolves on the current network id
+            let accountsPromise = window.web3.eth.getAccounts(); // resolves on an array of accounts
+        
+            Promise.all([MissionTrackerJSON, networkIdPromise, accountsPromise])
+            .then((results) => {
+                var contractData = results[0];
+                var networkId = results[1];
+                var accounts = results[2];
+                this.userAccount = accounts[0];
+        
+                // Make sure the contract is deployed on the connected network
+                if (!(networkId in contractData.networks)) {
+                    this.setState({
+                        wrongNetwork: true,
+                    })
+                    // throw new Error("Contract not found in selected Ethereum network on MetaMask.");
+                }
+                else{
+                    var contractAddress = contractData.networks[networkId].address;
+                    this.contract = new window.web3.eth.Contract(contractData.abi, contractAddress);
+                }
+            })
+            .catch(() => {
+                this.setState({
+                    failed: true,
+                })
+            });
+        }
     }
 
+    /**
+     * Associates a new string name with the user's wallet on the smart contract.
+     */
     registerGame() {
         let {nameFieldText} = this.state;
         
@@ -101,34 +115,60 @@ class GameManager extends Component {
         });
     }
 
-    addAchievement() {
+    /**
+     * Creates a new reward type on the smart contract that the user can give to players.
+     */
+    addReward() {
         let {achievementFieldText} = this.state;
 
+        this.setState({loading: true})
         this.contract.methods.createAndAllowReward(achievementFieldText).send({from: this.userAccount})
         .then((receipt) => {
             console.log(receipt);
+            return fetch(`/missiontracker/api/get_reward_id/${this.userAccount}`);
+        })
+        .then((response) => response.json())
+        .then((rewardId) => {
+            console.log(rewardId);
+            this.setState({
+                loading: false,
+                showSnackbar: true,
+                snackbarText: `New item (#${rewardId}) forged!`
+            })
         });
     }
 
     handleClose = (event, reason) => {
       this.setState({ showSnackbar: false });
     };
-    
-    var tokenEvent = this.contract.methods.Token();
-    var tokenID = null;
-
-    tokenEvent.watch(function(error, result){
-        if (!error)
-        {
-            tokenID = result;
-        } else {
-            console.log(error);
-        }
-    });
 
     render() {
         let {classes} = this.props;
 
+        if (this.state.failed || this.state.wrongNetwork) {
+            return (
+                <div className={classes.root}>
+                    <Typography className={classes.title}>
+                        Inventory
+                    </Typography>
+                    <Typography>
+                        {this.state.failed ? 'Please install Metamask to manage your games.' : 'Please connect to Rinkeby Test Network.'}
+                    </Typography>
+                </div>
+            )
+        }
+        else if (this.state.loading) {
+            return (
+                <div className={classes.root}>
+                    <Typography className={classes.title}>
+                        Inventory
+                    </Typography>
+                    <div className={classes.spinner}>
+                        <CircularProgress />
+                    </div>
+                </div>
+            )
+        }
         return (
             <div className={classes.root}>
                 <Typography className={classes.title}>
@@ -140,7 +180,7 @@ class GameManager extends Component {
                 </div>
                 <div>
                     <TextField placeholder={'New Item Name'} className={classes.textField} onChange={(e) => this.setState({achievementFieldText: e.target.value})}/>
-                    <Button className={classes.button} onClick={() => {this.addAchievement(); var item_id = 'New item (#' + String(item_id) + ') forged!'; this.setState({showSnackbar: true, snackbarText: item_alert});}}>CREATE</Button>
+                    <Button className={classes.button} onClick={() => {this.addReward();}}>CREATE</Button>
                 </div>
                 <Snackbar
                     anchorOrigin={{

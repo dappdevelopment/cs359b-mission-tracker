@@ -9,15 +9,17 @@ const port = 5000;
 const providerUrl = 'https://rinkeby.infura.io/N9Txfkh1TNZhoeKXV6Xm';
 // const providerUrl = 'http://127.0.0.1:7545';
 
+const rewardIds = {};
+
 let contractAddress = null;
 let contract = null;
 
-let web3 = new Web3(new Web3.providers.HttpProvider(providerUrl));
-if (typeof web3 === 'undefined') throw 'No web3 detected. Is Metamask/Mist being used?';
+let httpWeb3 = new Web3(new Web3.providers.HttpProvider(providerUrl));
+if (typeof httpWeb3 === 'undefined') throw 'No web3 detected. Is Metamask/Mist being used?';
 console.log("Using web3 version: " + Web3.version);
 
 let contractDataPromise = MissionTrackerJson;
-let networkIdPromise = web3.eth.net.getId(); // resolves on the current network id
+let networkIdPromise = httpWeb3.eth.net.getId(); // resolves on the current network id
 
 Promise.all([contractDataPromise, networkIdPromise])
 .then(results => {
@@ -30,21 +32,41 @@ Promise.all([contractDataPromise, networkIdPromise])
     }
 
     contractAddress = contractData.networks[networkId].address;
-    contract = new web3.eth.Contract(contractData.abi, contractAddress);
+    contract = new httpWeb3.eth.Contract(contractData.abi, contractAddress);
     app.listen(port, () => console.log(`Site server on port ${port}`));
+    return contractData;
+})
+.then((contractData) => {
+    // Connect to INFURA's web socket to subscribe to events
+    const wssWeb3 = new Web3(new Web3.providers.WebsocketProvider('wss://rinkeby.infura.io/ws'));
+    let c = new wssWeb3.eth.Contract(contractData.abi, contractAddress);
+    c.events.Reward({}, {}, (error, result) => {
+        if (error) {
+            console.error(error);
+        }
+        // When a new Reward type is created, register it locally so that its id can be sent to the client
+        rewardIds[result.returnValues['_creator']] = result.returnValues['_id'];
+        console.log(result);
+    })
 })
 .catch(console.error);
 
-app.get('/missiontracker/api/register_game/:name', (req, res) => {
-    let name = req.params.name;
+/**
+ * Called after a user has created a new reward type and the transaction has been confirmed.
+ * This sends the user the id of that newly created token.
+ */
+app.get('/missiontracker/api/get_reward_id/:address', (req, res) => {
+    let address = req.params.address;
 
-    contract.methods.registerGame(decodeURIComponent(name)).send({from: userAccount})
-    .then((receipt) => {
-        res.send(receipt);
-    });
-});
+    let rewardId = rewardIds[address];
+    delete rewardIds[address];
+    res.send(rewardId);
+})
 
-// TODO: currently will only detect rewards issues by the game, not by any other game
+/**
+ * Returns a data structure containing all of the items the player has received from all games, organized by game.
+ * TODO: currently will only detect rewards issues by the game, not by any other game
+ */
 app.get('/missiontracker/api/get_progress/:player', (req, res) => {
     let playerId = req.params.player;
 

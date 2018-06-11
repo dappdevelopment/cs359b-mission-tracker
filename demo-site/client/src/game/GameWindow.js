@@ -1,3 +1,7 @@
+/**
+ * Frames the Square Mover game and registers its completion on the smart contract.
+ */
+
 import React, { Component } from 'react';
 
 import {withStyles} from '@material-ui/core/styles';
@@ -53,20 +57,35 @@ class GameWindow extends Component {
             messageText: 'Use the arrow keys to move',
             userAccount: '',
             isCompleted: null,
+            failed: false,
+            wrongNetwork: false,
         };
         this.gameServerUrl = DEFAULT_SERVER_URL;
     }
 
     componentDidMount() {
+        if (typeof web3 == 'undefined') {
+            this.setState({failed: true});
+            return;
+        }
         window.web3 = new window.Web3(window.web3.currentProvider); // MetaMask injected Ethereum provider
-
+        
+        let networkIdPromise = window.web3.eth.net.getId(); // resolves on the current network id
         let accountsPromise = window.web3.eth.getAccounts(); // resolves on an array of accounts
     
-        Promise.all([accountsPromise])
+        Promise.all([accountsPromise, networkIdPromise])
         .then((results) => {
             var accounts = results[0];
-            this.setState({userAccount: accounts[0]});
-            return accounts[0];
+            var networkId = results[1];
+
+            if(networkId != 4) {
+                this.setState({wrongNetwork: true});
+                throw new Error('Incorrect network ID.');
+            }
+            else{
+                this.setState({userAccount: accounts[0]});
+                return accounts[0];
+            }
         })
         .then(account => {
             return fetch(`/missiontracker/api/get_progress/${account}`);
@@ -93,7 +112,7 @@ class GameWindow extends Component {
                 messageText: 'Registering checkpoint with blockchain...',
                 isCompleted: true,
             })
-            fetch(`${this.gameServerUrl}/missiontracker/api/give_reward/${this.state.userAccount}/3`, {mode: 'no-cors'})
+            fetch(`${this.gameServerUrl}/missiontracker/api/give_reward/${this.state.userAccount}/10`, {mode: 'no-cors'})
             .then(response => {
                 return response.json();
             })
@@ -109,6 +128,19 @@ class GameWindow extends Component {
     render() {
         let {classes} = this.props;
         let {messageText} = this.state;
+
+        if (this.state.failed || this.state.wrongNetwork) {
+            return (
+                <div className={classes.root}>
+                    <Typography className={classes.title}>
+                        Square Mover
+                    </Typography>
+                    <Typography>
+                        {this.state.failed ? 'Please install Metamask to play.' : 'Please connect to Rinkeby Test Network.'}
+                    </Typography>
+                </div>
+            )
+        }
 
         if (this.state.isCompleted === null) {
             return (
