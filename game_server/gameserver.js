@@ -5,7 +5,7 @@ const MissionTrackerJson = require('./contracts/MissionTracker.json');
 
 const app = express();
 
-//5001 is the necessary port for communication between Docker image and local machine
+//5001 is the port that the machine will use to communicate with the Docker server
 const port = process.env.PORT || 5001;
 
 const providerUrl = 'https://rinkeby.infura.io/N9Txfkh1TNZhoeKXV6Xm';
@@ -56,6 +56,7 @@ app.get('/api/give_reward/:player/:reward', (req, res) => {
     let rewardId = req.params.reward;
     console.log(playerId, rewardId);
     let encodedABI = contract.methods.giveReward(playerId, rewardId).encodeABI();
+
 
     web3.eth.getTransactionCount(gamePublicKey, 'pending')
     .then(nonce => {
