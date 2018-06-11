@@ -24,3 +24,5 @@ ARG walletPrivate
 ENV walletPrivate = $private
 ARG walletPublic
 ENV walletPublic = $public
+ARG gasPrice
+ENV gasPrice = $gasPrice

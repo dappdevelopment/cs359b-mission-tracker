@@ -7,16 +7,18 @@ const app = express();
 
 //5001 is the port that the machine will use to communicate with the Docker server
 const port = process.env.PORT || 5001;
+
 const providerUrl = 'https://rinkeby.infura.io/N9Txfkh1TNZhoeKXV6Xm';
 
-//Game public and private keys
+//Game wallet public and private key
 const gamePublicKey = process.env.public;
-const gamePrivateKey = process.env.private;
-
-//Testing 
-//const temp_public = '0x1CE1fa37c955F8f48cf5Cff659eb0885874BBa7b';
-//const temp_private = new Buffer('568eb8f8bae05aa41fc9f23eb43daf1043d3b0a0a6994c581be26e521c00c277', 'hex');
-const production = true;
+const gamePrivateKey = new Buffer(process.env.private, 'hex');
+const gasPrice = process.env.gasPrice || 100;
+/* 
+Testing
+const temp_public = '0x1CE1fa37c955F8f48cf5Cff659eb0885874BBa7b';
+const temp_private = new Buffer('568eb8f8bae05aa41fc9f23eb43daf1043d3b0a0a6994c581be26e521c00c277', 'hex');
+*/
 
 let contractAddress = null;
 let contract = null;
@@ -44,18 +46,16 @@ Promise.all([contractDataPromise, networkIdPromise])
 })
 .catch(console.error);
 
-if (production) {
-    app.use('/', express.static(`${__dirname}/client/build`));
-}
-
-app.get('/', (req, res) => {
-	console.log("started");
-});
-
-app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
-    let reviewerId = req.params.reviewer;
-    let checkpointId = req.params.checkpoint;
-    let encodedABI = contract.methods.setCheckpointComplete(reviewerId, checkpointId).encodeABI();
+/*
+	Called when the server receives an HTTP GET method with a give_reward URL. The server issues 
+	a web3 call to the contract to mint a new token corresponding to that reward and give it to the player.
+	The transaction is signed with the game private key.
+*/ 
+app.get('/api/give_reward/:player/:reward', (req, res) => {
+    let playerId = req.params.player;
+    let rewardId = req.params.reward;
+    console.log(playerId, rewardId);
+    let encodedABI = contract.methods.giveReward(playerId, rewardId).encodeABI();
 
 
     web3.eth.getTransactionCount(gamePublicKey, 'pending')
@@ -65,7 +65,7 @@ app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
             to: contractAddress,
             gas: 2000000,
             data: encodedABI,
-            gasPrice: '100',
+            gasPrice,
             nonce,
         };
 
@@ -79,31 +79,3 @@ app.get('/api/complete_checkpoint/:reviewer/:checkpoint', (req, res) => {
         .catch(console.error);
     })
 });
-
-app.get('/api/add_checkpoint/:checkpoint_name', (req, res) => {
-	console.log("hello");
-    let checkpointName = decodeURIComponent(req.params.checkpoint_name);
-    let encodedABI = contract.methods.addGameCheckpoint(checkpointName).encodeABI();
-
-    web3.eth.getTransactionCount(gamePublicKey, 'pending')
-    .then(nonce => {
-        let rawTx = {
-            from: gamePublicKey,
-            to: contractAddress,
-            gas: 2000000,
-            data: encodedABI,
-            gasPrice: '100',
-            nonce,
-        };
-
-        let tx = new Tx(rawTx);
-        tx.sign(gamePrivateKey);
-    
-        let serializedTx = tx.serialize();
-    
-        web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'))
-        .on('receipt', console.log)
-        .catch(console.error);
-    })
-});
-console.log("end");
